@@ -461,6 +461,17 @@ class RedditPlaceClient:
             'Accept-Encoding': 'gzip, deflate'
         }
 
+        if col < 1000:
+            if row < 1000:
+                canvas_index = 0
+            else:
+                canvas_index = 2
+        else:
+            if row < 1000:
+                canvas_index = 1
+            else:
+                canvas_index = 3
+
         body = {
             'operationName': 'setPixel',
             'variables': {
@@ -472,7 +483,7 @@ class RedditPlaceClient:
                             'y': str(row % 1000),
                         },
                         'colorIndex': str(color),
-                        'canvasIndex': str(1 if col > 999 else 0)
+                        'canvasIndex': str(canvas_index)
                     }
                 }
             },
