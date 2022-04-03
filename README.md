@@ -15,13 +15,13 @@ pip install place_cz_bot
 ... then run it ...
 
 ```bash
-place_cz_bot -e reddit_username reddit_password
+place_cz_bot -u reddit_username reddit_password
 ```
 
 or if you have more than one account...  
 
 ```bash
-place_cz_bot -e uname_a pw_a -e uname_b pw_b
+place_cz_bot -u uname_a pw_a -e uname_b pw_b
 ```
 ## Dev Installation
 
