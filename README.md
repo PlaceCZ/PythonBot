@@ -4,7 +4,26 @@ This headless Python bot will automatically login to reddit, obtain access
 tokens (and refreshes them when they expire), obtain orders from the C&C server
 and automatically place pixels at the desired locations.
 
-## Installation
+## Installation and usage
+
+First install the package:
+
+```bash
+pip install place_cz_bot
+````
+
+... then run it ...
+
+```bash
+place_cz_bot -e reddit_username reddit_password
+```
+
+or if you have more than one account...  
+
+```bash
+place_cz_bot -e uname_a pw_a -e uname_b pw_b
+```
+## Dev Installation
 
  1. Clone the repo
     - If using SSH `git clone git@github.com:PlaceCZ/PythonBot.git`
