@@ -148,7 +148,7 @@ class CNCOrderClient:
     def __init__(self, session):
         self.session = session
         self.ws = None
-        self.logger = logging.getLogger('PlaceNL.cnc')
+        self.logger = logging.getLogger('PlaceCZ.cnc')
 
         self.order_map = None
 
@@ -184,7 +184,7 @@ class CNCOrderClient:
             raise Exception("WebSocket not yet initialized! Use async with!")
 
         await self.ws.send_str(json.dumps({"type": "getmap"}))
-        await self.ws.send_str(json.dumps({"type": "brand", "brand": f"PlaceNLpythonV{__version__}"}))
+        await self.ws.send_str(json.dumps({"type": "brand", "brand": f"PlaceCZpythonV{__version__}"}))
 
         async for msg in self.ws:
             try:
@@ -234,7 +234,7 @@ class RedditPlaceClient:
         self.access_token_expire = None
         self.current_canvas = None
 
-        self.logger = logging.getLogger(f'PlaceNL.reddit.{username}')
+        self.logger = logging.getLogger(f'PlaceCZ.reddit.{username}')
 
     async def __aenter__(self):
         self.logger.info("Logging in reddit user %s...", self.username)
