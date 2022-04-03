@@ -184,7 +184,7 @@ class CNCOrderClient:
                 continue
 
             if data['type'] == 'map':
-                map_url = f"https://placenl.noahvdaa.me/maps/{data['data']}"
+                map_url = f"https://placecz.martinnemi.me/maps/{data['data']}"
                 reason = data.get('reason')
                 self.logger.info("Loading new map (reason: %s)", reason if reason else "connected to server")
                 self.logger.info("Map URL: %s", map_url)
