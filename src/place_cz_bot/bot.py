@@ -618,8 +618,6 @@ async def on_request_start(session, ctx, params):
 
 
 async def main():
-    print("main running...")
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-u', '--user', nargs=2, action="append",
@@ -669,5 +667,4 @@ async def main():
 
 
 def run():
-    print("run() running...")
     asyncio.run(main())
