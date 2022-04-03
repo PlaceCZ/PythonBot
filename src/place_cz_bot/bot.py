@@ -1,3 +1,25 @@
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import logging
+import random
+import re
+import string
+import warnings
+from datetime import datetime, timedelta
+from io import BytesIO
+from typing import Optional
+
+import aiohttp
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy
+from rich.logging import RichHandler
+
+from .version import __version__
+
 """
 Headless reddit /r/place 2022 updater.
 
@@ -26,27 +48,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
-from __future__ import annotations
-import re
-import json
-import random
-import argparse
-import logging
-import asyncio
-import string
-import warnings
-from io import BytesIO
-from typing import Optional
-from datetime import datetime, timedelta
-
-import numpy
-import aiohttp
-import matplotlib
-import matplotlib.pyplot as plt
-from rich.logging import RichHandler
-
-__version__ = '1'
 
 logger = logging.getLogger()
 logging.basicConfig(format=r"[%(name)s] %(message)s", handlers=[RichHandler()])
@@ -184,7 +185,7 @@ class CNCOrderClient:
                 continue
 
             if data['type'] == 'map':
-                map_url = f"https://placenl.noahvdaa.me/maps/{data['data']}"
+                map_url = f"https://placecz.martinnemi.me/maps/{data['data']}"
                 reason = data.get('reason')
                 self.logger.info("Loading new map (reason: %s)", reason if reason else "connected to server")
                 self.logger.info("Map URL: %s", map_url)
@@ -201,8 +202,10 @@ class CNCOrderClient:
             data = await resp.read()
 
             self.order_map = plt.imread(BytesIO(data))
-            self.logger.info("Downloaded orders map, image size: %s (dtype: %s)", self.order_map.shape,
-                             self.order_map.dtype)
+            self.logger.info(
+                "Downloaded orders map, image size: %s (dtype: %s)", self.order_map.shape,
+                self.order_map.dtype
+            )
 
     async def signal_pixel_drawn(self, row, col, color):
         if not self.ws:
@@ -241,8 +244,10 @@ class RedditPlaceClient:
         expires = timedelta(seconds=expires_in / 1000)
         self.access_token_expire = datetime.now() + expires
 
-        self.logger.info("Login successful, obtained access token: %s. Expires: %s (%d minutes)", self.access_token,
-                         self.access_token_expire, expires.total_seconds() // 60)
+        self.logger.info(
+            "Login successful, obtained access token: %s. Expires: %s (%d minutes)", self.access_token,
+            self.access_token_expire, expires.total_seconds() // 60
+        )
 
         return self
 
@@ -259,8 +264,10 @@ class RedditPlaceClient:
 
         async with self.session.get(REDDIT_LOGIN_GET, headers=headers) as resp:
             if resp.status != 200:
-                self.logger.error("Could not login to reddit, failed to obtain CSRF token. HTTP status: %d.",
-                                  resp.status)
+                self.logger.error(
+                    "Could not login to reddit, failed to obtain CSRF token. HTTP status: %d.",
+                    resp.status
+                )
                 return False
 
             html = await resp.text()
@@ -285,7 +292,8 @@ class RedditPlaceClient:
                 return False
 
             cookies = self.session.cookie_jar.filter_cookies(
-                "https://www.reddit.com")
+                "https://www.reddit.com"
+            )
 
             if 'reddit_session' not in cookies:
                 self.logger.error("Login unsuccessful! Could not find reddit session cookie.")
@@ -331,8 +339,10 @@ class RedditPlaceClient:
         expires = timedelta(seconds=expires_in / 1000)
         self.access_token_expire = datetime.now() + expires
 
-        self.logger.info("Refreshed access token: %s. Expires: %s (%d minutes)", self.access_token,
-                         self.access_token_expire, expires.total_seconds() // 60)
+        self.logger.info(
+            "Refreshed access token: %s. Expires: %s (%d minutes)", self.access_token,
+            self.access_token_expire, expires.total_seconds() // 60
+        )
 
         return True
 
@@ -348,31 +358,39 @@ class RedditPlaceClient:
         }
 
         async with self.session.ws_connect(PLACE_WEBSOCKET, protocols=["graphql-ws"], headers=headers) as ws:
-            await ws.send_str(json.dumps({
-                "type": "connection_init",
-                "payload": {
-                    "Authorization": f"Bearer {self.access_token}"
-                }
-            }))
+            await ws.send_str(
+                json.dumps(
+                    {
+                        "type": "connection_init",
+                        "payload": {
+                            "Authorization": f"Bearer {self.access_token}"
+                        }
+                    }
+                )
+            )
 
-            await ws.send_str(json.dumps({
-                "id": "1",
-                "type": "start",
-                "payload": {
-                    "variables": {
-                        "input": {
-                            "channel": {
-                                "teamOwner": "AFD2022",
-                                "category": "CANVAS",
-                                "tag": str(canvas_id)
-                            }
-                        },
-                    },
-                    "extensions": {},
-                    "operationName": "replace",
-                    "query": GRAPHQL_CANVAS_QUERY,
-                }
-            }))
+            await ws.send_str(
+                json.dumps(
+                    {
+                        "id": "1",
+                        "type": "start",
+                        "payload": {
+                            "variables": {
+                                "input": {
+                                    "channel": {
+                                        "teamOwner": "AFD2022",
+                                        "category": "CANVAS",
+                                        "tag": str(canvas_id)
+                                    }
+                                },
+                            },
+                            "extensions": {},
+                            "operationName": "replace",
+                            "query": GRAPHQL_CANVAS_QUERY,
+                        }
+                    }
+                )
+            )
 
             async for msg in ws:
                 try:
@@ -392,15 +410,19 @@ class RedditPlaceClient:
                     async with self.session.get(f"{name}?nocache={random_str}") as resp:
                         if resp.status != 200:
                             text = await resp.text()
-                            self.logger.error("Error obtaining current canvas! HTTP Status: %d. Error:\n%s",
-                                              resp.status, text)
+                            self.logger.error(
+                                "Error obtaining current canvas! HTTP Status: %d. Error:\n%s",
+                                resp.status, text
+                            )
 
                             return
 
                         data = await resp.read()
                         canvas = plt.imread(BytesIO(data))
-                        self.logger.info("Loaded canvas ID %d (image size: %s, dtype: %s)", canvas_id,
-                                         canvas.shape, canvas.dtype)
+                        self.logger.info(
+                            "Loaded canvas ID %d (image size: %s, dtype: %s)", canvas_id,
+                            canvas.shape, canvas.dtype
+                        )
 
                         return canvas
 
@@ -411,8 +433,10 @@ class RedditPlaceClient:
         if canvas1 is not None and canvas2 is not None:
             self.current_canvas = numpy.hstack([canvas1, canvas2])
 
-            self.logger.info("Loaded full canvas (shape: %s, dtype: %s)",
-                             self.current_canvas.shape, self.current_canvas.dtype)
+            self.logger.info(
+                "Loaded full canvas (shape: %s, dtype: %s)",
+                self.current_canvas.shape, self.current_canvas.dtype
+            )
 
     def get_pixels_to_update(self, order_map):
         if self.current_canvas is None:
@@ -496,8 +520,10 @@ class RedditPlaceClient:
                         if next_available:
                             next_dt = datetime.fromtimestamp(float(next_available) / 1000)
                             delta = next_dt - datetime.now()
-                            self.logger.info("Next available possibility: %s (%d seconds)",
-                                             next_dt, delta.total_seconds())
+                            self.logger.info(
+                                "Next available possibility: %s (%d seconds)",
+                                next_dt, delta.total_seconds()
+                            )
 
                             return delta.total_seconds() + random.randint(5, 60)
                         else:
@@ -507,8 +533,10 @@ class RedditPlaceClient:
                         next_dt = datetime.fromtimestamp(next_available / 1000)
                         delta = next_dt - datetime.now()
 
-                        self.logger.info("Success! Next pixel will be set at %s (%d seconds)",
-                                         next_dt, delta.total_seconds())
+                        self.logger.info(
+                            "Success! Next pixel will be set at %s (%d seconds)",
+                            next_dt, delta.total_seconds()
+                        )
 
                         return delta.total_seconds() + random.randint(5, 60)
                 except Exception as e:
@@ -524,8 +552,10 @@ async def cnc_update_task(cnc_client):
         await asyncio.sleep(60)
 
 
-async def reddit_client_task(trace_config: aiohttp.TraceConfig, cnc_client: CNCOrderClient,
-                             username: str, password: str, user_agent: str = None):
+async def reddit_client_task(
+        trace_config: aiohttp.TraceConfig, cnc_client: CNCOrderClient,
+        username: str, password: str, user_agent: str = None
+):
     async with aiohttp.ClientSession(trace_configs=[trace_config]) as session:
         async with RedditPlaceClient(session, username, password, user_agent) as place_client:
             delay = 0
@@ -562,13 +592,17 @@ async def on_request_start(session, ctx, params):
 
 
 async def main():
+    print("main running...")
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-u', '--user', nargs=2, action="append",
         help="Reddit username and password. Use this option multiple times to run with multiple users."
     )
-    parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help="Enable verbose output, use multiple times to increase verbosity level.")
+    parser.add_argument(
+        '-v', '--verbose', action='count', default=0,
+        help="Enable verbose output, use multiple times to increase verbosity level."
+    )
 
     args = parser.parse_args()
 
@@ -609,8 +643,5 @@ async def main():
 
 
 def run():
+    print("run() running...")
     asyncio.run(main())
-
-
-if __name__ == '__main__':
-    run()
