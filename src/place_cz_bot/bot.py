@@ -429,9 +429,16 @@ class RedditPlaceClient:
     async def load_full_map(self):
         canvas1 = await self.load_canvas(0)
         canvas2 = await self.load_canvas(1)
+        canvas3 = await self.load_canvas(2)
+        canvas4 = await self.load_canvas(3)
 
-        if canvas1 is not None and canvas2 is not None:
-            self.current_canvas = numpy.hstack([canvas1, canvas2])
+        if not any(canvas is None for canvas in [canvas1, canvas2, canvas3, canvas4]):
+            self.current_canvas = numpy.vstack(
+                [
+                    numpy.hstack([canvas1, canvas2]),
+                    numpy.hstack([canvas3, canvas4])
+                ]
+            )
 
             self.logger.info(
                 "Loaded full canvas (shape: %s, dtype: %s)",
