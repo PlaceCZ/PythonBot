@@ -105,28 +105,36 @@ mutation setPixel($input: ActInput!) {
 }""".strip()
 
 COLOR_MAPPINGS = {
+    '#6D001A': 0,
     '#BE0039': 1,
     '#FF4500': 2,
     '#FFA800': 3,
     '#FFD635': 4,
+    '#FFF8B8': 5,
     '#00A368': 6,
     '#00CC78': 7,
     '#7EED56': 8,
     '#00756F': 9,
     '#009EAA': 10,
+    '#00CCC0': 11,
     '#2450A4': 12,
     '#3690EA': 13,
     '#51E9F4': 14,
     '#493AC1': 15,
     '#6A5CFF': 16,
+    '#94B3FF': 17,
     '#811E9F': 18,
     '#B44AC0': 19,
+    '#E4ABFF': 20,
+    '#DE107F': 21,
     '#FF3881': 22,
     '#FF99AA': 23,
     '#6D482F': 24,
     '#9C6926': 25,
+    '#FFB470': 26,
     '#000000': 27,
     '#898D90': 29,
+    '#515252': 28,
     '#D4D7D9': 30,
     '#FFFFFF': 31
 }
@@ -332,7 +340,7 @@ class RedditPlaceClient:
     async def refresh_access_token(self):
         result = await self.scrape_access_token()
         if not result:
-            self.logger.error("Could not refresh access token, trying again in one minute")
+            self.logger.error("Could not refresh access token!")
             return False
 
         self.access_token, expires_in = result
@@ -487,6 +495,17 @@ class RedditPlaceClient:
             'User-Agent': self.user_agent,
             'Accept-Encoding': 'gzip, deflate'
         }
+        
+        if col < 1000:
+            if row < 1000:
+                canvas_index = 0
+            else:
+                canvas_index = 2
+        else:
+            if row < 1000:
+                canvas_index = 1
+            else:
+                canvas_index = 3
 
         body = {
             'operationName': 'setPixel',
@@ -499,7 +518,7 @@ class RedditPlaceClient:
                             'y': str(row % 1000),
                         },
                         'colorIndex': str(color),
-                        'canvasIndex': str(1 if col > 999 else 0)
+                        'canvasIndex': str(canvas_index)
                     }
                 }
             },
