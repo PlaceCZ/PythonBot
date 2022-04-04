@@ -60,7 +60,24 @@ PLACE_WEBSOCKET = "wss://gql-realtime-2.reddit.com/query"
 BACKEND_DOMAIN = "placecz.martinnemi.me"
 CNC_WEBSOCKET = f"wss://{BACKEND_DOMAIN}/api/ws"
 BACKEND_MAPS_URL = f"https://{BACKEND_DOMAIN}/maps"
+
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:98.0) Gecko/20100101 Firefox/98.0"
+USER_AGENTS = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:98.0) Gecko/20100101 Firefox/98.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36 Edg/100.0.1185.29",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12.3; rv:98.0) Gecko/20100101 Firefox/98.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.141 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36 Edg/99.0.1150.36"
+]
 
 GRAPHQL_CANVAS_QUERY = """
 subscription replace($input: SubscribeInput!) {
@@ -180,7 +197,7 @@ class CNCOrderClient:
         try:
             await self.ws.send_str(json.dumps({"type": "ping"}))
         except ConnectionResetError:
-            self.logger.exception("Could not send ping, websocket closed?")
+            self.logger.warning("Could not send ping, websocket closed?")
             self.ws = None
 
         asyncio.get_running_loop().create_task(self.ping())
@@ -206,14 +223,13 @@ class CNCOrderClient:
 
                 order_map = await self.load_map(map_url)
 
-                if new_map_callback:
+                if order_map is not None and new_map_callback is not None:
                     new_map_callback(order_map)
 
     async def load_map(self, map_url) -> Optional[numpy.ndarray]:
         async with self.session.get(map_url) as resp:
             if resp.status != 200:
-                text = await resp.text()
-                self.logger.warning("Loading the map failed! Got HTTP response %d. Error:\n%s", resp.status, text)
+                self.logger.warning("Loading the map failed! Got HTTP response %d.", resp.status)
                 return
 
             data = await resp.read()
@@ -465,6 +481,9 @@ class RedditPlaceClient:
             logger.exception("Could not obtain current canvas!")
 
     def get_pixels_to_update(self, order_map) -> list:
+        if order_map is None:
+            return []
+
         if self.current_canvas is None:
             self.logger.warning("Current canvas not yet loaded, can't figure out pending pixels...")
             return []
@@ -620,6 +639,9 @@ class MainRunner:
         self.order_map = orders
 
     async def reddit_client(self, username, password, user_agent=None):
+        if user_agent is None:
+            user_agent = random.choice(USER_AGENTS)
+
         async with aiohttp.ClientSession(trace_configs=[self.trace_config]) as session:
             async with RedditPlaceClient(session, username, password, user_agent, self.debug) as place_client:
                 delay = 0
@@ -634,8 +656,8 @@ class MainRunner:
                     to_update = place_client.get_pixels_to_update(self.order_map)
 
                     if len(to_update) == 0:
-                        # No pixels to update, try again in 30 seconds
-                        delay = 30
+                        # No pixels to update, try again in 60 seconds
+                        delay = 60
                     else:
                         for pixel in to_update:
                             hex = matplotlib.colors.to_hex(self.order_map[pixel[0], pixel[1], :3]).upper()
@@ -653,8 +675,12 @@ class MainRunner:
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-u', '--user', nargs=2, action="append",
+        '-u', '--user', nargs=2, action="append", default=[],
         help="Reddit username and password. Use this option multiple times to run with multiple users."
+    )
+    parser.add_argument(
+        '-c', '--from-config', type=argparse.FileType("rb"), required=False, default=None,
+        help="Specify a path to a TOML config file describing account details."
     )
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="Enable verbose output, use multiple times to increase verbosity level.")
@@ -681,7 +707,16 @@ async def main():
     # Wait a few seconds before starting reddit clients to make sure C&C data has downloaded
     await asyncio.sleep(5)
 
-    for username, password in args.user:
+    users = list(args.user)
+
+    if args.from_config:
+        config = tomli.load(args.from_config)
+        config_users = [(u['username'], u['password']) for u in config.get('users', [])
+                        if u.get('username') and u.get('password')]
+
+        users.extend(config_users)
+
+    for username, password in users:
         tasks.append(runner.reddit_client(username, password))
 
     await asyncio.gather(*tasks)
