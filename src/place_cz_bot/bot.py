@@ -1,26 +1,3 @@
-from __future__ import annotations
-
-import argparse
-import asyncio
-import json
-import logging
-import random
-import re
-import string
-import warnings
-from datetime import datetime, timedelta
-from collections import deque
-from io import BytesIO
-from typing import Optional
-
-import aiohttp
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy
-from rich.logging import RichHandler
-
-from .version import __version__
-
 """
 Headless reddit /r/place 2022 updater.
 
@@ -49,6 +26,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
+from __future__ import annotations
+import re
+import json
+import random
+import argparse
+import logging
+import asyncio
+import string
+import warnings
+from io import BytesIO
+from typing import Optional
+from datetime import datetime, timedelta
+from collections import deque
+
+import numpy
+import aiohttp
+import matplotlib
+import matplotlib.pyplot as plt
+from rich.logging import RichHandler
+
+from .version import __version__
 
 logger = logging.getLogger()
 logging.basicConfig(format=r"[%(name)s] %(message)s", handlers=[RichHandler()])
