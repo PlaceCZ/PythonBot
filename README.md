@@ -1,3 +1,5 @@
+# Place 2022 skončilo, uvidíme se příště 👋
+
 # Reddit /r/place 2022 headless bot
 
 This headless Python bot will automatically login to reddit, obtain access 
